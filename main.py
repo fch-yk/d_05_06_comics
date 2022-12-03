@@ -60,14 +60,35 @@ def get_groups(access_token, vk_api_version):
     pprint.pprint(groups)
 
 
+def get_upload_url(access_token, vk_api_version, group_id):
+    url = 'https://api.vk.com/method/photos.getWallUploadServer'
+    payload = {
+        'access_token': access_token,
+        'v': vk_api_version,
+        'group_id': group_id,
+    }
+    connect_timeout = 3.05
+    read_timeout = 27
+    response = requests.get(
+        url,
+        params=payload,
+        timeout=(connect_timeout, read_timeout)
+    )
+    response.raise_for_status()
+    return response.json()['response']['upload_url']
+
+
 def main():
 
     env = Env()
     env.read_env()
     access_token = env('ACCESS_TOKEN')
-    # get_comic()
     vk_api_version = 5.131
-    get_groups(access_token, vk_api_version)
+    group_id = env('GROUP_ID')
+    # get_comic()
+    # get_groups(access_token, vk_api_version)
+    upload_url = get_upload_url(access_token, vk_api_version, group_id)
+    print(upload_url)
 
 
 if __name__ == '__main__':
