@@ -17,8 +17,13 @@ def get_link_extension(link):
 def download_image(url, folder_name, file_name, payload=None):
     Path(folder_name).mkdir(parents=True, exist_ok=True)
     file_path = os.path.join(folder_name, file_name)
-
-    response = requests.get(url, params=payload)
+    connect_timeout = 3.05
+    read_timeout = 27
+    response = requests.get(
+        url,
+        params=payload,
+        timeout=(connect_timeout, read_timeout)
+    )
     response.raise_for_status()
 
     with open(file_path, 'wb') as file:
@@ -78,8 +83,36 @@ def get_upload_url(access_token, vk_api_version, group_id):
     return response.json()['response']['upload_url']
 
 
-def main():
+def upload_photo(
+    access_token,
+    vk_api_version,
+    group_id,
+    upload_url,
+    file_path
+):
+    payload = {
+        'access_token': access_token,
+        'v': vk_api_version,
+        'group_id': group_id,
+    }
+    with open(file_path, 'rb') as file:
+        files = {
+            'photo': file,
+        }
+        connect_timeout = 3.05
+        read_timeout = 27
+        response = requests.post(
+            upload_url,
+            params=payload,
+            files=files,
+            timeout=(connect_timeout, read_timeout)
+        )
+        response.raise_for_status()
 
+    return response.json()
+
+
+def main():
     env = Env()
     env.read_env()
     access_token = env('ACCESS_TOKEN')
@@ -88,7 +121,15 @@ def main():
     # get_comic()
     # get_groups(access_token, vk_api_version)
     upload_url = get_upload_url(access_token, vk_api_version, group_id)
-    print(upload_url)
+    file_path = './images/comic_353.png'
+    upload_response = upload_photo(
+        access_token,
+        vk_api_version,
+        group_id,
+        upload_url,
+        file_path,
+    )
+    pprint.pprint(upload_response)
 
 
 if __name__ == '__main__':
