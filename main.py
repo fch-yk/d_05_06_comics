@@ -112,6 +112,36 @@ def upload_photo(
     return response.json()
 
 
+def save_wall_photo(
+    access_token,
+    vk_api_version,
+    group_id,
+    upload_response,
+    caption
+):
+    url = 'https://api.vk.com/method/photos.saveWallPhoto'
+    payload = {
+        'access_token': access_token,
+        'v': vk_api_version,
+        'group_id': group_id,
+        'photo': upload_response['photo'],
+        'server': upload_response['server'],
+        'hash': upload_response['hash'],
+        'caption': caption,
+    }
+
+    connect_timeout = 3.05
+    read_timeout = 27
+    response = requests.post(
+        url,
+        params=payload,
+        timeout=(connect_timeout, read_timeout)
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
 def main():
     env = Env()
     env.read_env()
@@ -129,7 +159,16 @@ def main():
         upload_url,
         file_path,
     )
-    pprint.pprint(upload_response)
+    caption = 'comic about python'
+    save_response = save_wall_photo(
+        access_token,
+        vk_api_version,
+        group_id,
+        upload_response,
+        caption
+    )
+
+    pprint.pprint(save_response)
 
 
 if __name__ == '__main__':
