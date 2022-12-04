@@ -5,6 +5,7 @@ tmp*.*
 *.code-workspace
 history.txt
 *token*.json
+comic*.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

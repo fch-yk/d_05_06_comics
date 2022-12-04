@@ -1,11 +1,16 @@
 
 import os
-import pprint
-from pathlib import Path
+import random
 from urllib.parse import unquote, urlsplit
 
 import requests
 from environs import Env
+
+
+def request_timeout():
+    connect_timeout = 3.05
+    read_timeout = 27
+    return connect_timeout, read_timeout
 
 
 def get_link_extension(link):
@@ -14,15 +19,10 @@ def get_link_extension(link):
     return os.path.splitext(unquoted_path)[1]
 
 
-def download_image(url, folder_name, file_name, payload=None):
-    Path(folder_name).mkdir(parents=True, exist_ok=True)
-    file_path = os.path.join(folder_name, file_name)
-    connect_timeout = 3.05
-    read_timeout = 27
+def download_image(url, file_path):
     response = requests.get(
         url,
-        params=payload,
-        timeout=(connect_timeout, read_timeout)
+        timeout=request_timeout()
     )
     response.raise_for_status()
 
@@ -30,39 +30,18 @@ def download_image(url, folder_name, file_name, payload=None):
         file.write(response.content)
 
 
-def get_comic():
-    comic_number = 353
+def get_max_comic_number():
+    url = 'https://xkcd.com/info.0.json'
+    response = requests.get(url, timeout=request_timeout())
+    response.raise_for_status()
+    return response.json()['num']
+
+
+def get_comic_card(comic_number):
     url = f'https://xkcd.com/{comic_number}/info.0.json'
-    connect_timeout = 3.05
-    read_timeout = 27
-    response = requests.get(url, timeout=(connect_timeout, read_timeout))
+    response = requests.get(url, timeout=request_timeout())
     response.raise_for_status()
-    folder_name = 'images'
-    comic_card = response.json()
-    img_link = comic_card['img']
-    extension = get_link_extension(img_link)
-    download_image(img_link, folder_name, f'comic_{comic_number}{extension}')
-    comment = comic_card['alt']
-    print(comment)
-
-
-def get_groups(access_token, vk_api_version):
-    url = 'https://api.vk.com/method/groups.get'
-    payload = {
-        'access_token': access_token,
-        'v': vk_api_version,
-        'extended': 1,
-    }
-    connect_timeout = 3.05
-    read_timeout = 27
-    response = requests.get(
-        url,
-        params=payload,
-        timeout=(connect_timeout, read_timeout)
-    )
-    response.raise_for_status()
-    groups = response.json()
-    pprint.pprint(groups)
+    return response.json()
 
 
 def get_upload_url(access_token, vk_api_version, group_id):
@@ -72,15 +51,13 @@ def get_upload_url(access_token, vk_api_version, group_id):
         'v': vk_api_version,
         'group_id': group_id,
     }
-    connect_timeout = 3.05
-    read_timeout = 27
     response = requests.get(
         url,
         params=payload,
-        timeout=(connect_timeout, read_timeout)
+        timeout=request_timeout()
     )
     response.raise_for_status()
-    return response.json()['response']['upload_url']
+    return response.json()
 
 
 def upload_photo(
@@ -99,26 +76,18 @@ def upload_photo(
         files = {
             'photo': file,
         }
-        connect_timeout = 3.05
-        read_timeout = 27
         response = requests.post(
             upload_url,
             params=payload,
             files=files,
-            timeout=(connect_timeout, read_timeout)
+            timeout=request_timeout()
         )
         response.raise_for_status()
 
     return response.json()
 
 
-def save_wall_photo(
-    access_token,
-    vk_api_version,
-    group_id,
-    upload_response,
-    caption
-):
+def save_wall_photo(access_token, vk_api_version, group_id, upload_response):
     url = 'https://api.vk.com/method/photos.saveWallPhoto'
     payload = {
         'access_token': access_token,
@@ -127,15 +96,12 @@ def save_wall_photo(
         'photo': upload_response['photo'],
         'server': upload_response['server'],
         'hash': upload_response['hash'],
-        'caption': caption,
     }
 
-    connect_timeout = 3.05
-    read_timeout = 27
     response = requests.post(
         url,
         params=payload,
-        timeout=(connect_timeout, read_timeout)
+        timeout=request_timeout()
     )
     response.raise_for_status()
 
@@ -147,7 +113,7 @@ def post_photo(
     vk_api_version,
     group_id,
     save_response,
-    caption
+    message
 ):
     owner_id = save_response['response'][0]['owner_id']
     media_id = save_response['response'][0]['id']
@@ -157,20 +123,16 @@ def post_photo(
         'v': vk_api_version,
         'owner_id': f'-{group_id}',
         'from_group': 1,
-        'message': caption,
+        'message': message,
         'attachments': f'photo{owner_id}_{media_id}',
     }
 
-    connect_timeout = 3.05
-    read_timeout = 27
     response = requests.post(
         url,
         params=payload,
-        timeout=(connect_timeout, read_timeout)
+        timeout=request_timeout()
     )
     response.raise_for_status()
-
-    return response.json()
 
 
 def main():
@@ -179,10 +141,26 @@ def main():
     access_token = env('ACCESS_TOKEN')
     vk_api_version = 5.131
     group_id = env('GROUP_ID')
-    # get_comic()
-    # get_groups(access_token, vk_api_version)
-    upload_url = get_upload_url(access_token, vk_api_version, group_id)
-    file_path = './images/comic_353.png'
+
+    max_comic_number = get_max_comic_number()
+    comic_number = random.randint(1, max_comic_number)
+    comic_card = get_comic_card(comic_number)
+    message = comic_card['alt']
+    img_link = comic_card['img']
+    extension = get_link_extension(img_link)
+    file_path = f'comic_{comic_number}{extension}'
+    download_image(img_link, file_path)
+
+    upload_url_response = get_upload_url(
+        access_token,
+        vk_api_version,
+        group_id
+    )
+    if 'error' in upload_url_response:
+        raise requests.ConnectionError(upload_url_response['error'])
+
+    upload_url = upload_url_response['response']['upload_url']
+
     upload_response = upload_photo(
         access_token,
         vk_api_version,
@@ -190,24 +168,15 @@ def main():
         upload_url,
         file_path,
     )
-    caption = 'comic about python'
+
     save_response = save_wall_photo(
         access_token,
         vk_api_version,
         group_id,
-        upload_response,
-        caption
+        upload_response
     )
 
-    post_response = post_photo(
-        access_token,
-        vk_api_version,
-        group_id,
-        save_response,
-        caption
-    )
-
-    pprint.pprint(post_response)
+    post_photo(access_token, vk_api_version, group_id, save_response, message)
 
 
 if __name__ == '__main__':
