@@ -142,6 +142,37 @@ def save_wall_photo(
     return response.json()
 
 
+def post_photo(
+    access_token,
+    vk_api_version,
+    group_id,
+    save_response,
+    caption
+):
+    owner_id = save_response['response'][0]['owner_id']
+    media_id = save_response['response'][0]['id']
+    url = 'https://api.vk.com/method/wall.post'
+    payload = {
+        'access_token': access_token,
+        'v': vk_api_version,
+        'owner_id': f'-{group_id}',
+        'from_group': 1,
+        'message': caption,
+        'attachments': f'photo{owner_id}_{media_id}',
+    }
+
+    connect_timeout = 3.05
+    read_timeout = 27
+    response = requests.post(
+        url,
+        params=payload,
+        timeout=(connect_timeout, read_timeout)
+    )
+    response.raise_for_status()
+
+    return response.json()
+
+
 def main():
     env = Env()
     env.read_env()
@@ -168,7 +199,15 @@ def main():
         caption
     )
 
-    pprint.pprint(save_response)
+    post_response = post_photo(
+        access_token,
+        vk_api_version,
+        group_id,
+        save_response,
+        caption
+    )
+
+    pprint.pprint(post_response)
 
 
 if __name__ == '__main__':
