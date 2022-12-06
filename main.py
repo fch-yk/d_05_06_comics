@@ -7,12 +7,6 @@ import requests
 from environs import Env
 
 
-def get_request_timeout():
-    connect_timeout = 3.05
-    read_timeout = 27
-    return connect_timeout, read_timeout
-
-
 def get_link_extension(link):
     path = urlsplit(link).path
     unquoted_path = unquote(path)
@@ -22,7 +16,7 @@ def get_link_extension(link):
 def download_image(url, file_path):
     response = requests.get(
         url,
-        timeout=get_request_timeout()
+        timeout=(3.05, 27)
     )
     response.raise_for_status()
 
@@ -32,14 +26,14 @@ def download_image(url, file_path):
 
 def get_max_comic_number():
     url = 'https://xkcd.com/info.0.json'
-    response = requests.get(url, timeout=get_request_timeout())
+    response = requests.get(url, timeout=(3.05, 27))
     response.raise_for_status()
     return response.json()['num']
 
 
 def get_comic_card(comic_number):
     url = f'https://xkcd.com/{comic_number}/info.0.json'
-    response = requests.get(url, timeout=get_request_timeout())
+    response = requests.get(url, timeout=(3.05, 27))
     response.raise_for_status()
     return response.json()
 
@@ -54,7 +48,7 @@ def get_upload_url(access_token, vk_api_version, group_id):
     response = requests.get(
         url,
         params=payload,
-        timeout=get_request_timeout()
+        timeout=(3.05, 27)
     )
     response.raise_for_status()
     return response.json()
@@ -80,7 +74,7 @@ def upload_photo(
             upload_url,
             params=payload,
             files=files,
-            timeout=get_request_timeout()
+            timeout=(3.05, 27)
         )
         response.raise_for_status()
 
@@ -101,7 +95,7 @@ def save_wall_photo(access_token, vk_api_version, group_id, upload_response):
     response = requests.post(
         url,
         params=payload,
-        timeout=get_request_timeout()
+        timeout=(3.05, 27)
     )
     response.raise_for_status()
 
@@ -130,7 +124,7 @@ def post_photo(
     response = requests.post(
         url,
         params=payload,
-        timeout=get_request_timeout()
+        timeout=(3.05, 27)
     )
     response.raise_for_status()
 
