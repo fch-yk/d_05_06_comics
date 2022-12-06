@@ -17,14 +17,14 @@ pip install -r requirements.txt
 ```
 
 - Set up environmental variables in your operating system or in .env file. The variables are:
-  - `ACCESS_TOKEN` - see the instruction [here](https://vk.com/dev/implicit_flow_user);
-  - `GROUP_ID` is ID of your group on VK, you can get it [here](https://regvk.com/id/);
+  - `VK_ACCESS_TOKEN` - see the instruction [here](https://vk.com/dev/implicit_flow_user);
+  - `VK_GROUP_ID` is ID of your group on VK, you can get it [here](https://regvk.com/id/);
 
 To set up variables in .env file, create it in the root directory of the project and fill it up like this:
 
 ```bash
-ACCESS_TOKEN=yourtoken
-GROUP_ID=123456789
+VK_ACCESS_TOKEN=yourtoken
+VK_GROUP_ID=123456789
 ```
 
 ## Using the script

@@ -141,9 +141,9 @@ def main():
     env = Env()
     env.read_env()
     common_vk_settings = CommonVKSettings(
-        env('ACCESS_TOKEN'),
+        env('VK_ACCESS_TOKEN'),
         '5.131',
-        env('GROUP_ID')
+        env('VK_GROUP_ID')
     )
 
     max_comic_number = get_max_comic_number()
