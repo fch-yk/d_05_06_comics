@@ -76,7 +76,7 @@ def upload_photo(
             files=files,
             timeout=(3.05, 27)
         )
-        response.raise_for_status()
+    response.raise_for_status()
 
     return response.json()
 
