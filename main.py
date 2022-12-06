@@ -162,6 +162,7 @@ def main():
         upload_url,
         file_path,
     )
+    os.remove(file_path)
 
     save_response = save_wall_photo(
         access_token,
@@ -171,7 +172,6 @@ def main():
     )
 
     post_photo(access_token, vk_api_version, group_id, save_response, message)
-    os.remove(file_path)
 
 
 if __name__ == '__main__':
