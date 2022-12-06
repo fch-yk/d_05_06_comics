@@ -1,10 +1,18 @@
 
 import os
 import random
+from dataclasses import dataclass
 from urllib.parse import unquote, urlsplit
 
 import requests
 from environs import Env
+
+
+@dataclass
+class CommonVKSettings:
+    access_token: str
+    vk_api_version: str
+    group_id: str
 
 
 def get_link_extension(link):
@@ -38,12 +46,12 @@ def get_comic_card(comic_number):
     return response.json()
 
 
-def get_upload_url(access_token, vk_api_version, group_id):
+def get_upload_url(common_vk_settings: CommonVKSettings):
     url = 'https://api.vk.com/method/photos.getWallUploadServer'
     payload = {
-        'access_token': access_token,
-        'v': vk_api_version,
-        'group_id': group_id,
+        'access_token': common_vk_settings.access_token,
+        'v': common_vk_settings.vk_api_version,
+        'group_id': common_vk_settings.group_id,
     }
     response = requests.get(
         url,
@@ -55,16 +63,14 @@ def get_upload_url(access_token, vk_api_version, group_id):
 
 
 def upload_photo(
-    access_token,
-    vk_api_version,
-    group_id,
-    upload_url,
-    file_path
+    common_vk_settings: CommonVKSettings,
+    upload_url: str,
+    file_path: str
 ):
     payload = {
-        'access_token': access_token,
-        'v': vk_api_version,
-        'group_id': group_id,
+        'access_token': common_vk_settings.access_token,
+        'v': common_vk_settings.vk_api_version,
+        'group_id': common_vk_settings.group_id,
     }
     with open(file_path, 'rb') as file:
         files = {
@@ -81,15 +87,20 @@ def upload_photo(
     return response.json()
 
 
-def save_wall_photo(access_token, vk_api_version, group_id, upload_response):
+def save_wall_photo(
+    common_vk_settings: CommonVKSettings,
+    photo: str,
+    server: str,
+    photo_hash: str,
+):
     url = 'https://api.vk.com/method/photos.saveWallPhoto'
     payload = {
-        'access_token': access_token,
-        'v': vk_api_version,
-        'group_id': group_id,
-        'photo': upload_response['photo'],
-        'server': upload_response['server'],
-        'hash': upload_response['hash'],
+        'access_token': common_vk_settings.access_token,
+        'v': common_vk_settings.vk_api_version,
+        'group_id': common_vk_settings.group_id,
+        'photo': photo,
+        'server': server,
+        'hash': photo_hash,
     }
 
     response = requests.post(
@@ -103,19 +114,16 @@ def save_wall_photo(access_token, vk_api_version, group_id, upload_response):
 
 
 def post_photo(
-    access_token,
-    vk_api_version,
-    group_id,
-    save_response,
+    common_vk_settings: CommonVKSettings,
+    owner_id,
+    media_id,
     message
 ):
-    owner_id = save_response['response'][0]['owner_id']
-    media_id = save_response['response'][0]['id']
     url = 'https://api.vk.com/method/wall.post'
     payload = {
-        'access_token': access_token,
-        'v': vk_api_version,
-        'owner_id': f'-{group_id}',
+        'access_token': common_vk_settings.access_token,
+        'v': common_vk_settings.vk_api_version,
+        'owner_id': f'-{common_vk_settings.group_id}',
         'from_group': 1,
         'message': message,
         'attachments': f'photo{owner_id}_{media_id}',
@@ -132,9 +140,11 @@ def post_photo(
 def main():
     env = Env()
     env.read_env()
-    access_token = env('ACCESS_TOKEN')
-    vk_api_version = 5.131
-    group_id = env('GROUP_ID')
+    common_vk_settings = CommonVKSettings(
+        env('ACCESS_TOKEN'),
+        '5.131',
+        env('GROUP_ID')
+    )
 
     max_comic_number = get_max_comic_number()
     comic_number = random.randint(1, max_comic_number)
@@ -145,33 +155,29 @@ def main():
     file_path = f'comic_{comic_number}{extension}'
     download_image(img_link, file_path)
 
-    upload_url_response = get_upload_url(
-        access_token,
-        vk_api_version,
-        group_id
-    )
+    upload_url_response = get_upload_url(common_vk_settings)
     if 'error' in upload_url_response:
         raise requests.ConnectionError(upload_url_response['error'])
 
     upload_url = upload_url_response['response']['upload_url']
 
-    upload_response = upload_photo(
-        access_token,
-        vk_api_version,
-        group_id,
-        upload_url,
-        file_path,
-    )
+    upload_response = upload_photo(common_vk_settings, upload_url, file_path)
     os.remove(file_path)
 
     save_response = save_wall_photo(
-        access_token,
-        vk_api_version,
-        group_id,
-        upload_response
+        common_vk_settings,
+        upload_response['photo'],
+        upload_response['server'],
+        upload_response['hash']
+
     )
 
-    post_photo(access_token, vk_api_version, group_id, save_response, message)
+    post_photo(
+        common_vk_settings,
+        save_response['response'][0]['owner_id'],
+        save_response['response'][0]['id'],
+        message
+    )
 
 
 if __name__ == '__main__':
