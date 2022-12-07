@@ -1,7 +1,6 @@
 
 import os
 import random
-from contextlib import contextmanager
 from dataclasses import dataclass
 from urllib.parse import unquote, urlsplit
 
@@ -138,14 +137,6 @@ def post_photo(
     response.raise_for_status()
 
 
-@contextmanager
-def remove_tmp_file(file_path):
-    try:
-        yield
-    finally:
-        os.remove(file_path)
-
-
 def main():
     env = Env()
     env.read_env()
@@ -164,15 +155,18 @@ def main():
     file_path = f'comic_{comic_number}{extension}'
     download_image(img_link, file_path)
 
-    with remove_tmp_file(file_path):
+    try:
         upload_url_response = get_upload_url(common_vk_settings)
         if 'error' in upload_url_response:
             raise requests.ConnectionError(upload_url_response['error'])
         upload_url = upload_url_response['response']['upload_url']
-        upload_response = upload_photo(common_vk_settings,
-                                       upload_url,
-                                       file_path
-                                       )
+        upload_response = upload_photo(
+            common_vk_settings,
+            upload_url,
+            file_path
+        )
+    finally:
+        os.remove(file_path)
 
     save_response = save_wall_photo(
         common_vk_settings,
