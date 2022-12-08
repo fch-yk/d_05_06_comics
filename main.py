@@ -5,8 +5,6 @@ from urllib.parse import unquote, urlsplit
 import requests
 from environs import Env
 
-# pylint: disable=too-many-arguments
-
 
 def get_link_extension(link):
     path = urlsplit(link).path
