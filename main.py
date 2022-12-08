@@ -1,4 +1,3 @@
-
 import os
 import random
 from urllib.parse import unquote, urlsplit
